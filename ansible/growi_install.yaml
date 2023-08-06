@@ -1,0 +1,10 @@
+- hosts: all
+  tasks:
+  - name: clone growi repository from github
+    git:
+      repo: https://github.com/ABC10946/growi-docker-compose.git
+      dest: /root/growi
+  - name: launch growi
+    command: docker compose up -d
+    args:
+      chdir: /root/growi/
