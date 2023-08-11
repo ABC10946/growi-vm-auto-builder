@@ -1,0 +1,3 @@
+- import_playbook: apt_upgrade.yaml
+- import_playbook: docker_install.yaml
+- import_playbook: growi_install.yaml

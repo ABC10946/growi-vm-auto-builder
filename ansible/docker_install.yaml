@@ -1,5 +1,6 @@
 - name: docker install
   hosts: all
+  become: yes
   tasks:
   - name: docker prerequirement install
     apt:

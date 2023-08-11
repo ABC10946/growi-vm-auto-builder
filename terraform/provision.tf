@@ -1,24 +1,40 @@
-resource "proxmox_lxc" "growi-provision" {
-    hostname = "growi"
-    target_node = "actinium"
-    ostemplate = "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-    password = "terraform"
-    start = "true"
+resource "local_file" "cloud_init_user_data_file" {
+	content = file("${path.module}/userdata/adduser.yaml")
+	filename = "${path.module}/userdata/adduser.yaml"
+}
 
-    ssh_public_keys = <<-EOT
-        ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFTouq403ZuY062irLXthwaeihhYeO3wAO5fNE2Uvg3G abc@einsteinium
-    EOT
+resource "null_resource" "cloud_init_config" {
+	connection {
+		type = "ssh"
+		user = var.pve_user
+		password = var.pve_password
+		host = "192.168.3.80"
+	}
 
-    rootfs {
-        storage = "vm_strg"
-        size = "40G"
-    }
-    memory = 4096
+	provisioner "file" {
+	    source = local_file.cloud_init_user_data_file.filename
+	    destination = "/var/lib/vz/snippets/adduser.yaml"
+	}
+}
 
-    network {
-        name = "eth0"
-        bridge = "vmbr0"
-        ip = "192.168.3.20/24"
-        gw = "192.168.3.1"
-    }
+resource "proxmox_vm_qemu" "growi-provision" {
+	depends_on = [
+		null_resource.cloud_init_config
+	]
+
+	name = "growi"
+	target_node = "actinium"
+	clone = "ubuntu-template"
+	onboot = true
+
+	cicustom = "user=local:snippets/adduser.yaml"
+
+	disk {
+		type = "sata"
+		storage = "vm_strg"
+		size = "40G"
+	}
+	memory = 4096
+
+	ipconfig0 = "ip=192.168.3.20/24,gw=192.168.3.1"
 }
